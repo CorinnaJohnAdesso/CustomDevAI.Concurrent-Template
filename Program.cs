@@ -7,13 +7,11 @@ using System.Text;
 
 var agents = Utils.GetAgents();
 
+// TODO
 // create a workflow that
 // - runs all agents (except censor) concurrently with the same prompt
 // - waits until finished
 // - calls the aggregator function which runs the censor agent
-var mainAgent = agents["Censor Agent"];
-var otherAgents = agents.Values.Where(x => x != mainAgent).ToList();
-var workflow = AgentWorkflowBuilder.BuildConcurrent("Evaluation Workflow", otherAgents, Aggregate);
 
 Console.WriteLine("Worüber suchst du eine Meinung?");
 string? userQuestion;
@@ -22,31 +20,14 @@ while ((userQuestion = Console.ReadLine())?.Length > 0)
 {
     List<ChatMessage> messages = [new(ChatRole.User, userQuestion)];
 
+    // TODO
     // begin streaming of events
-    await using StreamingRun run = await InProcessExecution.RunStreamingAsync(workflow, messages);
-    await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
 
+    // TODO
+    // wait for final output event
     await foreach (WorkflowEvent evt in run.WatchStreamAsync())
     {
-        if (evt is ExecutorFailedEvent failed)
-        {
-            Console.WriteLine($"{(failed.Data as ClientResultException)?.Message}");
-        }
-        else if (evt is WorkflowOutputEvent outputEvent
-            && outputEvent.ExecutorId.ToString() == "ConcurrentEnd"
-            && outputEvent.Data is List<ChatMessage> responseMessages)
-        {
-            // show output of the aggregate function
-            foreach (var x in responseMessages)
-            {
-                Console.WriteLine(x.Text);
-            }
-            break;
-        }
-        else
-        {
-            Console.Write(".");
-        }
+        //
     }
 
     Console.WriteLine("Was möchtest du noch vergleichen?");
