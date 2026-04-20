@@ -1,4 +1,4 @@
-﻿namespace CustomDevUI.Concurrent;
+﻿namespace CustomDevAI.Concurrent;
 
 public class AgentsSettings
 {

@@ -1,35 +1,11 @@
 ﻿using Azure.AI.Projects;
-using Azure.Identity;
-using CustomDevUI.Concurrent;
-using Microsoft.Agents.AI;
+using CustomDevAI.Concurrent;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using System.ClientModel;
 using System.Text;
 
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .Build();
-
-var settings = configuration.GetSection(AgentsSettings.SectionName).Get<AgentsSettings>() 
-    ?? throw new Exception("AgentsSettings konnte nicht geladen werden");
-
-SortedList<string, ChatClientAgent> agents = [];
-
-// prepare all configured agents
-foreach (var agentSettings in settings.Agents ?? [])
-{
-    var client = new AIProjectClient(new Uri(agentSettings.Endpoint), new DefaultAzureCredential());
-
-    var agent = client.AsAIAgent(
-        agentSettings.ModelDeployment,
-        agentSettings.Instructions,
-        agentSettings.AgentName);
-
-    agents.Add(agentSettings.AgentName, agent);
-}
+var agents = Utils.GetAgents();
 
 // create a workflow that
 // - runs all agents (except censor) concurrently with the same prompt
@@ -53,7 +29,9 @@ while ((userQuestion = Console.ReadLine())?.Length > 0)
     await foreach (WorkflowEvent evt in run.WatchStreamAsync())
     {
         if (evt is ExecutorFailedEvent failed)
+        {
             Console.WriteLine($"{(failed.Data as ClientResultException)?.Message}");
+        }
         else if (evt is WorkflowOutputEvent outputEvent
             && outputEvent.ExecutorId.ToString() == "ConcurrentEnd"
             && outputEvent.Data is List<ChatMessage> responseMessages)
