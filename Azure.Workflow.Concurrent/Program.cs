@@ -22,11 +22,20 @@ while ((userQuestion = Console.ReadLine())?.Length > 0)
     // TODO
     // begin streaming of events
 
-    // TODO
-    // wait for final output event
     await foreach (WorkflowEvent evt in run.WatchStreamAsync())
     {
-        //
+        if (evt is ExecutorFailedEvent failed)
+        {
+            Console.WriteLine($"{(failed.Data as ClientResultException)?.Message}");
+        }
+
+        // TODO
+        // wait for final output event
+
+        else
+        {
+            Console.Write(".");
+        }
     }
 
     Console.WriteLine("Was möchtest du noch vergleichen?");
