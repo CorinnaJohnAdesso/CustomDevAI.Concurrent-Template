@@ -18,7 +18,7 @@ client = OpenAI(
 def get_time(zone: str) -> float:
     try:
         tz = pytz.timezone(zone)
-        return tz.localize(datetime.datetime.now())
+        return datetime.datetime.now(tz)
     except pytz.exceptions.UnknownTimeZoneError:
         return None
 
@@ -30,19 +30,18 @@ tools = [
     {
         "type": "function",
         "name": "get_time",
-        "description": "Get current time in the given time zone.",
+        "description": "Gets the current local time in the given time zone.",
         "parameters": {
                 "type": "object",
                 "properties": {
                     "zone": {
                         "type": "string",
-                        "description": "Time zone for which to get the current time."
+                        "description": "Time zone for which to get the current local time."
                     }
                 },
             "additionalProperties": False,
             "required": ["zone"],
         }
-
     }
 ]
 
@@ -86,9 +85,11 @@ def main():
         response = chat_complete(messages)
 
         output = [x for x in response.output if x.type != "reasoning"][0]
-        messages.append(output) # add to chat history to keep track of the conversation
+        
+        # add to chat history to keep track of the conversation
+        messages.append(output)
 
-        if output.type == "message": # != "function_call":
+        if output.type == "message":
             print(response.output_text)
             continue
         
