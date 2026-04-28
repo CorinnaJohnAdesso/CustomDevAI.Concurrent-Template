@@ -1,5 +1,4 @@
-﻿using Azure.AI.Projects;
-using CustomDevAI.Concurrent;
+﻿using CustomDevAI.Concurrent;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 using System.ClientModel;
