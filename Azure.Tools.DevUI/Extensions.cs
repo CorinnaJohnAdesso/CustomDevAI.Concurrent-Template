@@ -38,7 +38,7 @@ public static class Extensions
 
                 // TODO
                 // provide system time
-                // provice OpenMeteo weather
+                // provide OpenMeteo weather
 
                 );
             return agent;
