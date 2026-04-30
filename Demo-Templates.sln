@@ -1,11 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.5.11716.220 stable
+VisualStudioVersion = 18.5.11716.220
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomDevAI.AgentWithDI", "Azure.Tools.DevUI\CustomDevAI.AgentWithDI.csproj", "{69E29148-C740-FB12-3E6F-EE47509D0570}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomDevAI.Concurrent", "Azure.Workflow.Concurrent\CustomDevAI.Concurrent.csproj", "{27B2848B-ECAD-5AD1-E3FC-A47CBECA4C23}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OutlookMcpServer", "MCP\OutlookMcpServer\OutlookMcpServer.csproj", "{240C8D29-571F-618F-EED4-A5345D2A2EC1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MCP", "MCP", "{BE8FA20B-0374-4DEA-9A31-4995379D7B24}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "McpClient", "MCP\McpClient\McpClient.csproj", "{8B5375E6-7621-576B-223E-990583E405D7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,9 +27,21 @@ Global
 		{27B2848B-ECAD-5AD1-E3FC-A47CBECA4C23}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{27B2848B-ECAD-5AD1-E3FC-A47CBECA4C23}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{27B2848B-ECAD-5AD1-E3FC-A47CBECA4C23}.Release|Any CPU.Build.0 = Release|Any CPU
+		{240C8D29-571F-618F-EED4-A5345D2A2EC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{240C8D29-571F-618F-EED4-A5345D2A2EC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{240C8D29-571F-618F-EED4-A5345D2A2EC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{240C8D29-571F-618F-EED4-A5345D2A2EC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B5375E6-7621-576B-223E-990583E405D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B5375E6-7621-576B-223E-990583E405D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B5375E6-7621-576B-223E-990583E405D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B5375E6-7621-576B-223E-990583E405D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{240C8D29-571F-618F-EED4-A5345D2A2EC1} = {BE8FA20B-0374-4DEA-9A31-4995379D7B24}
+		{8B5375E6-7621-576B-223E-990583E405D7} = {BE8FA20B-0374-4DEA-9A31-4995379D7B24}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7BF55467-89FC-409F-BDF6-67CCEAEB1B71}
