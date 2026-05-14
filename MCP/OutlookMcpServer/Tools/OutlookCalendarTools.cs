@@ -51,7 +51,9 @@ internal class OutlookCalendarTools(TimeProvider timeProvider)
         Outlook.Application? outlookApp = null;
         Outlook.NameSpace? ns = null;
         Outlook.MAPIFolder? calendarFolder = null;
+        Outlook.MAPIFolder? privatFolder = null;
         Outlook.Items? items = null;
+        Outlook.Items? privatItems = null;
 
         try
         {
@@ -61,68 +63,34 @@ internal class OutlookCalendarTools(TimeProvider timeProvider)
                      ShowDialog: false, NewSession: false);
 
             calendarFolder = ns.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderCalendar);
-            items = calendarFolder.Items;
-
-            // Important: IncludeRecurrences must be set BEFORE Sort
-            items.IncludeRecurrences = true;
-            items.Sort("[Start]");
 
             // --- 3. Build Outlook filter string (DASL) -------------------------
-            // End time = end of the last day (23:59:59)
             var startDt = start.ToDateTime(TimeOnly.MinValue);
-            var endDt   = end.ToDateTime(new TimeOnly(23, 59, 59));
+            var endDt = end.ToDateTime(new TimeOnly(23, 59, 59));
+            string restrict = $"[Start] >= '{startDt:g}' AND [Start] <= '{endDt:g}'";
 
-            // Outlook expects this date format in the Restrict filter
-            string fmtStart = startDt.ToString("g"); // locale-aware short date+time
-            string fmtEnd   = endDt.ToString("g");
-
-            string restrict = $"[Start] >= '{fmtStart}' AND [Start] <= '{fmtEnd}'";
-            Outlook.Items? filtered = items.Restrict(restrict) as Outlook.Items;
-
-            if (filtered == null || filtered.Count == 0)
-                return $"No appointments found in the range {start:yyyy-MM-dd} - {end:yyyy-MM-dd}.";
-
-            // --- 4. Collect results -------------------------------------------
+            // --- 4. Collect results from all calendars ------------------------
             var appointments = new List<AppointmentInfo>();
-            int count = 0;
 
-            foreach (object item in filtered)
+            // Default calendar
+            items = calendarFolder.Items;
+            items.IncludeRecurrences = true;
+            items.Sort("[Start]");
+            CollectFromItems(items, restrict, filter, maxResults, appointments);
+
+            // "Privat" calendar (subfolder of the default calendar)
+            try
             {
-                if (count >= maxResults) break;
-
-                if (item is not Outlook.AppointmentItem appt)
-                    continue;
-
-                // Optional: text filter
-                if (!string.IsNullOrWhiteSpace(filter))
+                privatFolder = calendarFolder.Folders["Privat"] as Outlook.MAPIFolder;
+                if (privatFolder != null)
                 {
-                    bool match = (appt.Subject?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false)
-                              || (appt.Body?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false)
-                              || (appt.Location?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
-                    if (!match)
-                    {
-                        Marshal.ReleaseComObject(appt);
-                        continue;
-                    }
+                    privatItems = privatFolder.Items;
+                    privatItems.IncludeRecurrences = true;
+                    privatItems.Sort("[Start]");
+                    CollectFromItems(privatItems, restrict, filter, maxResults, appointments);
                 }
-
-                appointments.Add(new AppointmentInfo
-                {
-                    Subject     = appt.Subject ?? "(no subject)",
-                    Start       = appt.Start,
-                    End         = appt.End,
-                    Location    = appt.Location,
-                    Organizer   = appt.Organizer,
-                    IsAllDay    = appt.AllDayEvent,
-                    IsRecurring = appt.IsRecurring,
-                    Categories  = appt.Categories,
-                    Body        = TruncateBody(appt.Body, 300),
-                    Sensitivity = appt.Sensitivity.ToString(),
-                });
-
-                Marshal.ReleaseComObject(appt);
-                count++;
             }
+            catch { /* ignore missing folder */ }
 
             if (appointments.Count == 0)
             {
@@ -140,16 +108,67 @@ internal class OutlookCalendarTools(TimeProvider timeProvider)
         finally
         {
             // Release COM objects
-            if (items          != null) Marshal.ReleaseComObject(items);
+            if (privatItems != null) Marshal.ReleaseComObject(privatItems);
+            if (privatFolder != null) Marshal.ReleaseComObject(privatFolder);
+            if (items != null) Marshal.ReleaseComObject(items);
             if (calendarFolder != null) Marshal.ReleaseComObject(calendarFolder);
-            if (ns             != null) { try { ns.Logoff(); } catch { } Marshal.ReleaseComObject(ns); }
-            if (outlookApp     != null) Marshal.ReleaseComObject(outlookApp);
+            if (ns != null) { try { ns.Logoff(); } catch { } Marshal.ReleaseComObject(ns); }
+            if (outlookApp != null) Marshal.ReleaseComObject(outlookApp);
         }
     }
 
     // -----------------------------------------------------------------------
     // Private helpers
     // -----------------------------------------------------------------------
+
+    private void CollectFromItems(
+        Outlook.Items? items,
+        string restrict,
+        string? filter,
+        int maxResults,
+        List<AppointmentInfo> appointments)
+    {
+        if (items == null) return;
+
+        Outlook.Items? filtered = items.Restrict(restrict);
+        if (filtered == null) return;
+
+        foreach (object item in filtered)
+        {
+            if (appointments.Count >= maxResults) break;
+
+            if (item is not Outlook.AppointmentItem appt)
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                bool match = (appt.Subject?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false)
+                          || (appt.Body?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false)
+                          || (appt.Location?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
+                if (!match)
+                {
+                    Marshal.ReleaseComObject(appt);
+                    continue;
+                }
+            }
+
+            appointments.Add(new AppointmentInfo
+            {
+                Subject = appt.Subject ?? "(no subject)",
+                Start = appt.Start,
+                End = appt.End,
+                Location = appt.Location,
+                Organizer = appt.Organizer,
+                IsAllDay = appt.AllDayEvent,
+                IsRecurring = appt.IsRecurring,
+                Categories = appt.Categories,
+                Body = TruncateBody(appt.Body, 300),
+                Sensitivity = appt.Sensitivity.ToString(),
+            });
+
+            Marshal.ReleaseComObject(appt);
+        }
+    }
 
     private string FormatAppointments(
         List<AppointmentInfo> appointments,
@@ -199,9 +218,9 @@ internal class OutlookCalendarTools(TimeProvider timeProvider)
     private string TranslateSensitivity(string sensitivity) => sensitivity switch
     {
         "olConfidential" => "Confidential",
-        "olPersonal"     => "Personal",
-        "olPrivate"      => "Private",
-        _                => sensitivity,
+        "olPersonal" => "Personal",
+        "olPrivate" => "Private",
+        _ => sensitivity,
     };
 
     // -----------------------------------------------------------------------
@@ -209,15 +228,15 @@ internal class OutlookCalendarTools(TimeProvider timeProvider)
     // -----------------------------------------------------------------------
     private class AppointmentInfo
     {
-        public string   Subject     { get; init; } = "";
-        public DateTime Start       { get; init; }
-        public DateTime End         { get; init; }
-        public string?  Location    { get; init; }
-        public string?  Organizer   { get; init; }
-        public bool     IsAllDay    { get; init; }
-        public bool     IsRecurring { get; init; }
-        public string?  Categories  { get; init; }
-        public string   Body        { get; init; } = "";
-        public string   Sensitivity { get; init; } = "";
+        public string Subject { get; init; } = "";
+        public DateTime Start { get; init; }
+        public DateTime End { get; init; }
+        public string? Location { get; init; }
+        public string? Organizer { get; init; }
+        public bool IsAllDay { get; init; }
+        public bool IsRecurring { get; init; }
+        public string? Categories { get; init; }
+        public string Body { get; init; } = "";
+        public string Sensitivity { get; init; } = "";
     }
 }
