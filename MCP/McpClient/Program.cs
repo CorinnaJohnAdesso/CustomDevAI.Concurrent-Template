@@ -15,6 +15,7 @@ var configuration = new ConfigurationBuilder()
 var endpoint = configuration["OpenAI:Endpoint"]!;
 var apiKey = configuration["OpenAI:ApiKey"]!;
 var model = configuration["OpenAI:Model"]!;
+var toolConfigs = configuration.GetSection("Tools").Get<ToolConfig[]>() ?? [];
 #endregion Read settings
 
 // Create OpenAI-compatible client against a custom endpoint
@@ -25,13 +26,12 @@ var openAIClient = new OpenAIClient(
 
 #region Initialize MCP tools
 
-// TODO
+// TODO: Create sampling client
 
-// Create sampling client
-
-// Create MCP client
-
-// Read the available tools
+// Tnitialize all configured MCP Servers
+var tools = toolConfigs.SelectMany(
+    toolConfig => InitTool(samplingClient, toolConfig.Name, toolConfig.Command, toolConfig.Args).Result
+    ).ToList();
 
 #endregion Initialize MCP tools
 
@@ -75,3 +75,33 @@ while (true)
 }
 
 #endregion Process user questions
+
+static async Task<IList<McpClientTool>> InitTool(IChatClient samplingClient, string name, string command, string[] arguments)
+{
+    var mcpClient = await McpClient.CreateAsync(
+        new StdioClientTransport(new()
+        {
+            Name = name,
+            Command = command,
+            Arguments = arguments,
+        }),
+        clientOptions: new()
+        {
+            Handlers = new()
+            {
+                SamplingHandler = samplingClient.CreateSamplingHandler()
+            }
+        });
+
+    // Get all available tools
+    Console.WriteLine("Tools available:");
+    var tools = await mcpClient.ListToolsAsync();
+    foreach (var tool in tools)
+    {
+        Console.WriteLine($"  {tool}");
+    }
+
+    return tools;
+}
+
+record ToolConfig(string Name, string Command, string[] Args);
