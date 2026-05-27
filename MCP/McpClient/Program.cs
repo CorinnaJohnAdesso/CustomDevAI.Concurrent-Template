@@ -5,7 +5,6 @@ using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using OpenAI;
 using System.ClientModel;
-using System.Diagnostics;
 
 #region Read settings
 var configuration = new ConfigurationBuilder()
@@ -27,8 +26,7 @@ var openAIClient = new OpenAIClient(
 
 #region Initialize MCP tools
 
-
-// TODO: Create sampling client
+// TODO: Create a sampling client
 
 var tools = toolConfigs.SelectMany(
     toolConfig => InitTool(samplingClient, toolConfig.Name, toolConfig.Command, toolConfig.Args).Result
@@ -36,11 +34,7 @@ var tools = toolConfigs.SelectMany(
 
 #endregion Initialize MCP tools
 
-// Create an IChatClient that can use the tools.
-using IChatClient chatClient = openAIClient.AsIChatClient()
-    .AsBuilder()
-    .UseFunctionInvocation()
-    .Build();
+// TODO: Create an IChatClient that can use the tools.
 
 #region Process user questions
 
@@ -52,23 +46,59 @@ messages.Add(new(ChatRole.System, "You are a personal assistant. If you need to 
 
 while (true)
 {
+    Console.ForegroundColor = ConsoleColor.White;
     Console.Write("Any questions about your own plans? ");
     messages.Add(new(ChatRole.User, Console.ReadLine()));
 
-    // TODO: Pass the tools to the LLM and get a response
+    var response = chatClient.GetStreamingResponseAsync(messages, new() { Tools = [.. tools] });
+    List<ChatResponseUpdate> updates = [];
 
     await foreach (var update in response)
     {
         var text = update.Text;
         if (text?.Length > 0)
         {
+            Console.ForegroundColor = ConsoleColor.White;
             Console.Write(text);
+
             updates.Add(update);
         }
         else
         {
-            Console.Write(".");
-            Debug.Write(update.Contents.FirstOrDefault()?.ToString());
+            var content = update.Contents.FirstOrDefault();
+
+            if (content is UsageContent usageContent)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("Token count: {0}", usageContent.Details.TotalTokenCount);
+            }
+            else if (content is FunctionCallContent functionCallContent)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                Console.WriteLine("Function call: {0}({1})", functionCallContent.Name, string.Join(", ", functionCallContent.Arguments?.Select(x => $"{x.Key}={x.Value}") ?? []));
+            }
+
+            else if (content is FunctionResultContent functionResult)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.WriteLine("Function result: {0}", functionResult.Result);
+            }
+            else if (content is ToolCallContent toolCallContent)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkCyan;
+                Console.WriteLine("Tool call: {0}", toolCallContent);
+            }
+
+            else if (content is ToolResultContent toolResult)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.WriteLine("Tool result: {0}", toolResult);
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.DarkMagenta;
+                Console.Write(update.Contents.FirstOrDefault()?.ToString());
+            }
         }
 
         await Console.Out.FlushAsync();
@@ -77,8 +107,6 @@ while (true)
 
     messages.AddMessages(updates);
 }
-
-#endregion Process user questions
 
 static async Task<IList<McpClientTool>> InitTool(IChatClient samplingClient, string name, string command, string[] arguments)
 {
@@ -98,7 +126,8 @@ static async Task<IList<McpClientTool>> InitTool(IChatClient samplingClient, str
         });
 
     // TODO: Get all available tools
-    
+
+    Console.ForegroundColor = ConsoleColor.White;
     Console.WriteLine("Tools available:");
     foreach (var tool in tools)
     {
@@ -107,3 +136,5 @@ static async Task<IList<McpClientTool>> InitTool(IChatClient samplingClient, str
 
     return tools;
 }
+
+#endregion Process user questions
