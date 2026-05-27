@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.AI;
+﻿using Options;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
@@ -15,7 +16,7 @@ var configuration = new ConfigurationBuilder()
 var endpoint = configuration["OpenAI:Endpoint"]!;
 var apiKey = configuration["OpenAI:ApiKey"]!;
 var model = configuration["OpenAI:Model"]!;
-var toolConfigs = configuration.GetSection("Tools").Get<ToolConfig[]>() ?? [];
+var toolConfigs = configuration.GetSection("Tools").Get<ToolInfo[]>() ?? [];
 #endregion Read settings
 
 // Create OpenAI-compatible client against a custom endpoint
@@ -26,9 +27,9 @@ var openAIClient = new OpenAIClient(
 
 #region Initialize MCP tools
 
+
 // TODO: Create sampling client
 
-// Tnitialize all configured MCP Servers
 var tools = toolConfigs.SelectMany(
     toolConfig => InitTool(samplingClient, toolConfig.Name, toolConfig.Command, toolConfig.Args).Result
     ).ToList();
@@ -45,14 +46,17 @@ using IChatClient chatClient = openAIClient.AsIChatClient()
 
 // Have a conversation, making all tools available to the LLM.
 List<ChatMessage> messages = [];
+
+// Add system prompt
+messages.Add(new(ChatRole.System, "You are a personal assistant. If you need to search the internet, use a new browser tab."));
+
 while (true)
 {
     Console.Write("Any questions about your own plans? ");
     messages.Add(new(ChatRole.User, Console.ReadLine()));
 
-    var response = chatClient.GetStreamingResponseAsync(messages, new() { Tools = [.. tools] });
-    List<ChatResponseUpdate> updates = [];
-    
+    // TODO: Pass the tools to the LLM and get a response
+
     await foreach (var update in response)
     {
         var text = update.Text;
@@ -66,7 +70,7 @@ while (true)
             Console.Write(".");
             Debug.Write(update.Contents.FirstOrDefault()?.ToString());
         }
-        
+
         await Console.Out.FlushAsync();
     }
     Console.WriteLine();
@@ -93,9 +97,9 @@ static async Task<IList<McpClientTool>> InitTool(IChatClient samplingClient, str
             }
         });
 
-    // Get all available tools
+    // TODO: Get all available tools
+    
     Console.WriteLine("Tools available:");
-    var tools = await mcpClient.ListToolsAsync();
     foreach (var tool in tools)
     {
         Console.WriteLine($"  {tool}");
@@ -103,5 +107,3 @@ static async Task<IList<McpClientTool>> InitTool(IChatClient samplingClient, str
 
     return tools;
 }
-
-record ToolConfig(string Name, string Command, string[] Args);
