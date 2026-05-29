@@ -1,0 +1,5 @@
+name,Python,SQL,Azure,Machine_Learning,Docker,Kubernetes,PowerBI,Excel,Java,JavaScript,Git,REST_API,Scrum,Linux,Terraform,Spark,TensorFlow,Data_Analysis,CI_CD,Cloud_Architecture,Azure_DevOps,Microsoft_Fabric,Copilot_Studio,Power_Automate,Power_Apps,Microsoft_365,Azure_AI_Services,Dynamics_365,Azure_Data_Factory,Bicep_ARM
+Test1,0,0,5,0,1,1,1,0,0,0,1,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Test2,1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,1,1,1,0,1,0,1,1,0,1
+Test3,0,0,4,0,0,0,1,0,1,0,0,1,1,0,1,1,0,1,0,0,1,0,0,0,1,1,0,1,0,1
+Test4,1,0,1,1,1,0,0,1,0,1,0,1,1,0,0,0,0,0,1,0,1,0,0,1,1,0,1,0,0,0
