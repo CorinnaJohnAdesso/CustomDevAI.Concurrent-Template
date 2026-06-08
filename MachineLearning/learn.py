@@ -8,18 +8,26 @@ import pickle
 data = pd.read_csv('it_jobs_automl_dataset.csv')
 
 # prepare personal data: remove everything except skills
-X = data.drop('got_job', axis=1)
-X = X.drop('name', axis=1)
+X = data.drop('Hired', axis=1)
+X = X.drop('Name', axis=1)
 
 # split off the classification column
-y = data['got_job']
+y = data['Hired']
 
-# TODO: split the table into training and test data
+# split the table into training and test data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
 
-# TODO: fit a decision tree to the training data
+# fit a decision tree to the training data
+classifier = tree.DecisionTreeClassifier()
+classifier = classifier.fit(X_train, y_train)
 
-# TODO: test the model
+# test the model
+y_pred = classifier.predict(X_test)
 
-# TODO: measure accuracy
+# measure accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy}')
 
-# TODO: save the model to file
+# save the model to file
+with open('model.pkl', 'wb') as handle:
+    pickle.dump(classifier, handle, protocol=pickle.HIGHEST_PROTOCOL)
