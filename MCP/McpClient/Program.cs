@@ -108,6 +108,10 @@ while (true)
     messages.AddMessages(updates);
 }
 
+#endregion Process user questions
+
+#region helper methods
+
 static async Task<IList<McpClientTool>> InitTool(IChatClient samplingClient, string name, string command, string[] arguments)
 {
     var mcpClient = await McpClient.CreateAsync(
@@ -137,4 +141,4 @@ static async Task<IList<McpClientTool>> InitTool(IChatClient samplingClient, str
     return tools;
 }
 
-#endregion Process user questions
+#endregion helper methods
